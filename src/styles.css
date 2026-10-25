@@ -1,1 +1,18 @@
-/* You can add global styles to this file, and also import other style files */
+body {
+  font-family: system-ui, sans-serif;
+  margin: 2rem;
+}
+main {
+  max-width: 50rem;
+}
+svg,
+img {
+  display: block;
+  margin-block: 1rem;
+  border: 1px solid #aaa;
+}
+output {
+  display: block;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}

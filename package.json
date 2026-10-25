@@ -6,7 +6,10 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "fixtures": "node scripts/build-fixtures.mjs",
+    "matrix": "node scripts/svg-xss-matrix.mjs",
+    "matrix:summary": "node scripts/summarize-matrix.mjs"
   },
   "private": true,
   "packageManager": "npm@11.13.0",
@@ -24,8 +27,10 @@
     "@angular/build": "^22.2.0",
     "@angular/cli": "^22.2.0",
     "@angular/compiler-cli": "^22.2.0",
+    "@puppeteer/browsers": "^2.12.0",
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",
+    "puppeteer-core": "^24.30.0",
     "typescript": "~6.0.2",
     "vitest": "^5.0.0"
   }

@@ -1,0 +1,42 @@
+# CDP-free cross-check: chrome.exe --headless=new --dump-dom, server log is the only signal
+# 2026-10-25T19:37Z  v24.16.0  
+
+mode origin, 4 trial(s) per build
+  chrome 113.0.5672.63    0/4
+  chrome 114.0.5735.133   0/4
+  chrome 115.0.5790.170   0/4
+  chrome 116.0.5845.96    4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 117.0.5938.149   4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 118.0.5993.70    4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 119.0.6045.105   4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 120.0.6099.109   4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 121.0.6167.184   4/4  handler document: http://127.0.0.1:61768/test.svg#x
+  chrome 122.0.6261.128   0/4
+  chrome 156.0.8078.47    0/4
+
+mode data-base64, 8 trial(s) per build
+  chrome 113.0.5672.63    4/8  handler document: http://127.0.0.1:59630/
+  chrome 114.0.5735.133   8/8  handler document: http://127.0.0.1:59630/
+  chrome 115.0.5790.170   6/8  handler document: http://127.0.0.1:59630/
+  chrome 116.0.5845.96    8/8  handler document: http://127.0.0.1:59630/
+  chrome 117.0.5938.149   0/8
+  chrome 118.0.5993.70    0/8
+  chrome 119.0.6045.105   0/8
+
+mode data-percent, 8 trial(s) per build
+  chrome 113.0.5672.63    7/8  handler document: http://127.0.0.1:59160/
+  chrome 114.0.5735.133   6/8  handler document: http://127.0.0.1:59160/
+  chrome 115.0.5790.170   5/8  handler document: http://127.0.0.1:59160/
+  chrome 116.0.5845.96    8/8  handler document: http://127.0.0.1:59160/
+  chrome 117.0.5938.149   0/8
+  chrome 118.0.5993.70    0/8
+  chrome 119.0.6045.105   0/8
+
+mode data-text-xml, 8 trial(s) per build
+  chrome 113.0.5672.63    4/8  handler document: http://127.0.0.1:51149/
+  chrome 114.0.5735.133   6/8  handler document: http://127.0.0.1:51149/
+  chrome 115.0.5790.170   5/8  handler document: http://127.0.0.1:51149/
+  chrome 116.0.5845.96    8/8  handler document: http://127.0.0.1:51149/
+  chrome 117.0.5938.149   0/8
+  chrome 118.0.5993.70    0/8
+  chrome 119.0.6045.105   0/8
