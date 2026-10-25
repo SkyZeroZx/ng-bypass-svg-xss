@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "browser": "node scripts/browser.mjs",
     "fixtures": "node scripts/build-fixtures.mjs",
     "matrix": "node scripts/svg-xss-matrix.mjs",
     "matrix:summary": "node scripts/summarize-matrix.mjs"

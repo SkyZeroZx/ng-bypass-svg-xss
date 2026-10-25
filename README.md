@@ -18,32 +18,32 @@ builds, and records one JSONL row per case.
 
 Two ways an attacker gets a value into the binding:
 
-| | Attacker needs | Bound value |
-| --- | --- | --- |
-| **A** | text in a field the app later binds | `data:image/svg+xml;base64,…#x` |
-| **B** | an SVG file on the app's own origin, like an avatar upload | `/uploads/avatar.png#x` |
+|       | Attacker needs                                             | Bound value                     |
+| ----- | ---------------------------------------------------------- | ------------------------------- |
+| **A** | text in a field the app later binds                        | `data:image/svg+xml;base64,…#x` |
+| **B** | an SVG file on the app's own origin, like an avatar upload | `/uploads/avatar.png#x`         |
 
 A row only counts as executed when the handler ran with the app's `window`, read the app's cookie,
 and the server received a credentialed request from it. The event also has to be trusted
 (dispatched by the browser).
 
-| Browser | A | B |
-| --- | --- | --- |
-| Chrome 113–115 | intermittent | no |
-| Chrome 116 | yes | yes |
-| Chrome 117–121 | no | yes |
-| Chrome 122, 156 | no | no, the sprite renders |
-| Firefox 104–121 | yes | yes |
-| Firefox 122, 158.0.1 | no | yes |
+| Browser              | A            | B                      |
+| -------------------- | ------------ | ---------------------- |
+| Chrome 113–115       | intermittent | no                     |
+| Chrome 116           | yes          | yes                    |
+| Chrome 117–121       | no           | yes                    |
+| Chrome 122, 156      | no           | no, the sprite renders |
+| Firefox 104–121      | yes          | yes                    |
+| Firefox 122, 158.0.1 | no           | yes                    |
 
 Within each major's Baseline floor, computed with `baseline-browser-mapping` 2.11.32 from the dates on
 [angular.dev/reference/versions](https://angular.dev/reference/versions):
 
-| Angular | Floor | A runs on | B runs on |
-| --- | --- | --- | --- |
-| 22 | Chrome 119 / Firefox 119 | Firefox 119–121 | Chrome 119–121, Firefox 119–158 |
-| 21 | Chrome 111 / Firefox 112 | Chrome 113–116, Firefox 112–121 | Chrome 116–121, Firefox 112–158 |
-| 20 | Chrome 107 / Firefox 104 | Chrome 113–116, Firefox 104–121 | Chrome 116–121, Firefox 104–158 |
+| Angular | Floor                    | A runs on                       | B runs on                       |
+| ------- | ------------------------ | ------------------------------- | ------------------------------- |
+| 22      | Chrome 119 / Firefox 119 | Firefox 119–121                 | Chrome 119–121, Firefox 119–158 |
+| 21      | Chrome 111 / Firefox 112 | Chrome 113–116, Firefox 112–121 | Chrome 116–121, Firefox 112–158 |
+| 20      | Chrome 107 / Firefox 104 | Chrome 113–116, Firefox 104–121 | Chrome 116–121, Firefox 104–158 |
 
 Firefox still runs B today. Mozilla closed
 [bug 1912763](https://bugzilla.mozilla.org/show_bug.cgi?id=1912763) as INVALID because these
@@ -94,6 +94,17 @@ npm run matrix:summary -- evidence/*.jsonl
 Versions are a number, `stable`, `latest`, `esr` or `115.43.1esr`. Suites: `floor`, `data`, `origin`,
 `sinks`, `controls`, `full`. `--help` lists every flag.
 
+To check by hand, start your app however you like and open it in the exact version you want:
+
+```bash
+npm run browser -- --chrome 121 http://localhost:4200
+npm run browser -- --firefox 119 http://localhost:4200
+```
+
+It downloads the build if it isn't cached and opens it with a new profile and nothing attached, no
+CDP or WebDriver. The profile is deleted when you close the window, and Firefox has updates turned off
+so an old build stays that build.
+
 Browsers come from `@puppeteer/browsers` into a cache outside the repo (`%LOCALAPPDATA%` or
 `~/.cache`), profiles are temporary, and everything the attacker controls is generated in memory on a
 loopback origin. Firefox below 125 rejects Puppeteer's BiDi capabilities, so those builds go through
@@ -107,14 +118,14 @@ Each row has the browser build, bundle hash, bound URL, the HTTP responses the s
 case, what the handler reported (where it ran, event type, `isTrusted`, cookie) and whether the server
 saw the credentialed request. Verdicts are derived from those fields.
 
-| File | Contents |
-| --- | --- |
+| File                                    | Contents                                                             |
+| --------------------------------------- | -------------------------------------------------------------------- |
 | `evidence/floor-{chrome,firefox}.jsonl` | 4 `data:` and 4 same-origin cases, three Angular builds, 16 browsers |
-| `evidence/data-*.jsonl` | 10 `data:` spellings and 7 negative controls |
-| `evidence/origin-*.jsonl` | 16 response, path and redirect variants plus the Angular cases |
-| `evidence/sinks-*.jsonl` | 9 handler types |
-| `evidence/controls-*.jsonl` | the same file through `<img>` and direct navigation |
-| `evidence/crosscheck.txt` | `scripts/crosscheck.mjs` runs, Chrome 113–156 |
+| `evidence/data-*.jsonl`                 | 10 `data:` spellings and 7 negative controls                         |
+| `evidence/origin-*.jsonl`               | 16 response, path and redirect variants plus the Angular cases       |
+| `evidence/sinks-*.jsonl`                | 9 handler types                                                      |
+| `evidence/controls-*.jsonl`             | the same file through `<img>` and direct navigation                  |
+| `evidence/crosscheck.txt`               | `scripts/crosscheck.mjs` runs, Chrome 113–156                        |
 
 2,456 rows, 645 executions, 1 error. Every execution read the page cookie and the server saw its
 credentialed request. No negative control executed. The only control expected to run is opening the
