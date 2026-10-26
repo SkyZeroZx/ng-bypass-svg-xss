@@ -1,0 +1,11 @@
+<!--
+  <use> resolves the fragment to an element id, and that element can sit
+  anywhere in a response that parses as XML, so a feed, a SOAP body, a sitemap,
+  an XML API or an XHTML page carries the payload as well as an .svg does. What
+  the endpoint returns is the variable here. The binding is the one every icon
+  sprite uses.
+-->
+<h2>Same-origin XML endpoint</h2>
+<svg width="100" height="100" aria-label="xml endpoint test">
+  <use id="bound-use" [attr.href]="apiUrl"></use>
+</svg>

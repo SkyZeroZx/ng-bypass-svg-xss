@@ -1,0 +1,10 @@
+<!--
+  The icon sits inside a link the app wrote itself. The clone brings its own
+  <a>, and a click on the icon activates that one, not the app's /safe.
+-->
+<h2>Icon inside the app's own link</h2>
+<a href="/safe">
+  <svg width="100" height="100" aria-label="icon inside a link">
+    <use id="bound-use" [attr.href]="iconUrl"></use>
+  </svg>
+</a>

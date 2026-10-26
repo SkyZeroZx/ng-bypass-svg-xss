@@ -1,0 +1,9 @@
+<!--
+  The same document with no fragment to select an element. WebKit adopts the
+  whole document from 26.5 on, so this shape needs no element id on current
+  Safari. Chrome and Firefox need the fragment and leave this one inert.
+-->
+<h2>Same-origin SVG with no fragment</h2>
+<svg width="100" height="100" aria-label="fragmentless test">
+  <use id="bound-use" [attr.href]="assetUrl"></use>
+</svg>

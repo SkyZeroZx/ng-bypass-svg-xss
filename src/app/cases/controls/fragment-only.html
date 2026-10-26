@@ -1,0 +1,10 @@
+<!--
+  The shape most real bindings have: the document part is a reviewed file in
+  the app's own assets and only the fragment comes from data. Everything after
+  the first # is a fragment, so the reference stays inside /safe.svg and
+  resolves to nothing. This is the pattern a schema entry has to keep working.
+-->
+<h2>Only the fragment comes from data</h2>
+<svg width="100" height="100" aria-label="fragment-only test">
+  <use id="bound-use" [attr.href]="iconUrl"></use>
+</svg>

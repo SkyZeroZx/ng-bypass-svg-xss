@@ -1,0 +1,9 @@
+<!--
+  The same data: URL built at runtime instead of pasted in whole. This is the
+  form an application reaches for when it assembles an inline icon itself,
+  and the binding sees the same string either way.
+-->
+<h2>Constructed data: SVG reference</h2>
+<svg width="100" height="100" aria-label="constructed data URL test">
+  <use id="bound-use" [attr.href]="iconUrl" />
+</svg>

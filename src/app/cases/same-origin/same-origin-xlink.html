@@ -1,3 +1,8 @@
+<!--
+  The same reference through the deprecated xlink:href. Browsers still resolve
+  it, so an app that never moved off the old attribute is the same case as the
+  one bound to href.
+-->
 <h2>Same-origin SVG via xlink:href</h2>
 <svg xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100" aria-label="same-origin xlink test">
   <use id="bound-use" [attr.xlink:href]="assetUrl"></use>

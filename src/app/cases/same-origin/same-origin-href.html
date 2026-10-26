@@ -1,0 +1,9 @@
+<!--
+  The baseline same-origin case: a path this origin serves, with the fragment
+  that picks the element. Several matrix rows reuse this route and vary only
+  what the server sends back.
+-->
+<h2>Same-origin SVG via href</h2>
+<svg width="100" height="100" aria-label="same-origin href test">
+  <use id="bound-use" [attr.href]="assetUrl"></use>
+</svg>

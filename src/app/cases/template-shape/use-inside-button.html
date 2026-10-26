@@ -1,0 +1,11 @@
+<!--
+  The icon sits in a button the app wired up. One click runs the app's handler
+  and whatever the clone put under the pointer.
+-->
+<h2>Icon inside a button with a click handler</h2>
+<button type="button" (click)="clicks = clicks + 1">
+  <svg width="100" height="100" aria-label="icon inside a button">
+    <use id="bound-use" [attr.href]="iconUrl"></use>
+  </svg>
+</button>
+<p id="app-clicks">{{ clicks }}</p>
