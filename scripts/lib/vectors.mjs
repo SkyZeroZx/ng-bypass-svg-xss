@@ -126,8 +126,23 @@ function imageOnerror(id, sink, href) {
   return svgDocument(id, [RECT, '<image href="' + href + '" ' + on('onerror', sink, '  ') + '/>']);
 }
 
+// A reference that succeeds, so the handler fires without leaving a broken
+// icon behind. Every onerror sink here needs a failed load, which is visible;
+// this one is not, and it needs no interaction either.
+const RESOLVING_REFERENCE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
+
 export const SINKS = {
   'image-onerror': (id) => imageOnerror(id, 'image-onerror', FAILING_REFERENCE),
+  'image-onload': (id) =>
+    svgDocument(id, [
+      RECT,
+      '<image href="' +
+        RESOLVING_REFERENCE +
+        '" width="10" height="10" ' +
+        on('onload', 'image-onload', '  ') +
+        '/>',
+    ]),
   'image-onerror-relative': (id) => imageOnerror(id, 'image-onerror-relative', '1'),
   'image-onerror-404': (id) => imageOnerror(id, 'image-onerror-404', '/__missing'),
   'svg-onload': (id) => svgDocument(id, [RECT], on('onload', 'svg-onload', '')),
@@ -162,6 +177,31 @@ export const SINKS = {
     svgDocument(id, [
       '<rect width="40" height="40" fill="orange" ' + on('onclick', 'rect-onclick', '  ') + '/>',
     ]),
+  // Fires with no resource load and no interaction. Every other no-interaction
+  // sink here depends on a reference that fails, so a defence that strips
+  // `on*` from uploaded files or refuses `<image>` would still leave this one.
+  // `open="open"`: a valueless attribute is not well-formed XML.
+  'details-ontoggle': (id) =>
+    svgDocument(id, [
+      RECT,
+      '<foreignObject width="40" height="40">',
+      '  <details xmlns="http://www.w3.org/1999/xhtml" open="open" ' +
+        on('ontoggle', 'details-ontoggle', '    ') +
+        '><summary>i</summary>x</details>',
+      '</foreignObject>',
+    ]),
+  // Not a handler attribute: the cloned <a> is a live hyperlink. Activating it
+  // is a navigation, which is why a `javascript:` target is the only form of it
+  // this harness can score -- a navigation to an ordinary URL takes the page
+  // away and leaves no finding behind.
+  'anchor-javascript': (id) =>
+    svgDocument(id, [
+      '<a href="javascript:' +
+        xmlAttribute(impactScript('anchor-javascript').replace(/\n/g, ' ')) +
+        '">',
+      '  <rect width="40" height="40" fill="orange"/>',
+      '</a>',
+    ]),
   // CDATA so that a later edit adding & or < to the script cannot break the XML
   // parse and score this sink as blocked for the wrong reason.
   'script-tag': (id) =>
@@ -186,10 +226,56 @@ function svgDocument(id, children, rootAttributes = '') {
   ].join('\n');
 }
 
-export function payload(sink = 'image-onerror', { id = 'x' } = {}) {
+// What the rest of the response looks like around the attacker's <svg>.
+//
+// `<use>` resolves a fragment to an element id, and the referenced element does
+// not have to be the root: it can sit inside a document that is not an SVG
+// document at all, as long as the whole response still parses as XML. These
+// envelopes are the shapes an ordinary endpoint produces -- a feed, a SOAP
+// body, a sitemap, an XML API, an XHTML page, a list of records -- with the
+// attacker's subtree somewhere inside.
+//
+// The last three are the negative end: JSON is not XML, bytes before the root
+// make the parse fail, and an <svg> with no namespace is not an SVG element.
+export const ENVELOPES = {
+  'xml-prologue': (svg) => '<?xml version="1.0" encoding="UTF-8"?>\n' + svg,
+  'xml-trailing-bytes': (svg) => svg + '\nnot xml at all\n',
+  'xml-rss': (svg) =>
+    '<rss version="2.0"><channel><title>feed</title><item><description>' +
+    svg +
+    '</description></item></channel></rss>',
+  'xml-soap': (svg) =>
+    '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>' +
+    svg +
+    '</soap:Body></soap:Envelope>',
+  'xml-sitemap': (svg) =>
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>/a</loc></url>' +
+    svg +
+    '</urlset>',
+  'xml-api': (svg) => '<response><status>ok</status><data>' + svg + '</data></response>',
+  'xml-xhtml': (svg) =>
+    '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>profile</p>' + svg + '</body></html>',
+  'xml-record-list': (svg) =>
+    '<records><record id="1"><name>a</name></record><record id="2"><bio>' +
+    svg +
+    '</bio></record><record id="3"><name>c</name></record></records>',
+  'xml-deep': (svg) => '<a xmlns="urn:lab:one"><b><c><d>' + svg + '</d></c></b></a>',
+  'xml-json-envelope': (svg) => JSON.stringify({ ok: true, value: svg }),
+  'xml-bytes-before-root': (svg) => 'name,value\nicon,1\n' + svg,
+  'xml-no-namespace': (svg) => svg.replace(' xmlns="http://www.w3.org/2000/svg"', ''),
+};
+
+// Sinks that need a real pointer event. The harness clicks the bound <use>.
+export const CLICK_SINKS = new Set(['rect-onclick', 'anchor-javascript']);
+
+export function payload(sink = 'image-onerror', { id = 'x', wrap = null } = {}) {
   const build = SINKS[sink];
   if (!build) throw new Error('Unknown sink: ' + sink);
-  return build(id);
+  const svg = build(id);
+  if (!wrap) return svg;
+  const envelope = ENVELOPES[wrap];
+  if (!envelope) throw new Error('Unknown envelope: ' + wrap);
+  return envelope(svg);
 }
 
 export const SAFE_SVG =
@@ -340,6 +426,17 @@ function originFamily(sink) {
   return cases;
 }
 
+// Every case here is served as text/xml, a media type Chrome and Firefox
+// accept, so the only thing that varies is the document around the <svg>.
+function xmlFamily(sink) {
+  return Object.keys(ENVELOPES).map((wrap) => ({
+    id: wrap,
+    note: 'text/xml, attacker <svg> inside a ' + wrap.replace('xml-', '') + ' document',
+    resource: { mime: 'text/xml', sink, wrap },
+    url: ASSET_PATH + '#x',
+  }));
+}
+
 function sinkFamily() {
   return Object.keys(SINKS).map((sink) => ({
     id: 'sink-' + sink,
@@ -404,11 +501,13 @@ const SUITES = {
   ],
   data: (sink) => dataFamily(sink),
   origin: (sink) => originFamily(sink),
+  xml: (sink) => xmlFamily(sink),
   sinks: () => sinkFamily(),
   controls: (sink) => controlFamily(sink),
   full: (sink) => [
     ...dataFamily(sink),
     ...originFamily(sink),
+    ...xmlFamily(sink),
     ...sinkFamily(),
     ...controlFamily(sink),
   ],
@@ -452,10 +551,33 @@ export function angularVectors({ suite = 'floor', sink = 'image-onerror' } = {})
       resource: { mime: 'image/svg+xml', sink },
     },
     {
+      id: 'ng-origin-fragmentless',
+      route: 'same-origin-fragmentless',
+      note: 'uploaded SVG, nothing after the path in the binding',
+      resource: { mime: 'image/svg+xml', sink, rootId: '' },
+    },
+    {
       id: 'ng-origin-png-mime',
       route: 'same-origin-svg',
-      note: 'control: SVG bytes served as image/png',
+      note: 'SVG bytes served as image/png',
       resource: { mime: 'image/png', sink },
+    },
+    {
+      id: 'ng-inside-anchor',
+      route: 'use-inside-anchor',
+      note: "icon inside the app's own <a href>",
+      resource: { mime: 'image/svg+xml', sink },
+    },
+    {
+      id: 'ng-inside-button',
+      route: 'use-inside-button',
+      note: 'icon inside a <button (click)>',
+      resource: { mime: 'image/svg+xml', sink },
+    },
+    {
+      id: 'ng-fragment-only',
+      route: 'fragment-only',
+      note: 'control: only the fragment comes from data',
     },
     {
       id: 'ng-origin-app-csp',
@@ -473,11 +595,29 @@ export function angularVectors({ suite = 'floor', sink = 'image-onerror' } = {})
   let selected = rows;
   if (suite === 'floor') {
     selected = rows.filter(
-      (row) => row.id !== 'ng-origin-xlink' && row.id !== 'ng-origin-png-mime',
+      (row) =>
+        row.id !== 'ng-origin-xlink' &&
+        row.id !== 'ng-origin-png-mime' &&
+        row.id !== 'ng-fragment-only' &&
+        row.id !== 'ng-inside-anchor' &&
+        row.id !== 'ng-inside-button',
     );
   } else if (suite === 'data') {
     selected = rows.filter((row) => row.route.startsWith('data'));
+  } else if (suite === 'xml') {
+    // One component, bound to one of the app's own XML endpoints, and the
+    // envelope the endpoint returns is the variable. A row that executes here
+    // and in the html layer is the application-level finding; without this the
+    // envelope result would only ever be a browser result.
+    selected = Object.keys(ENVELOPES).map((wrap) => ({
+      id: 'ng-' + wrap,
+      route: 'xml-endpoint',
+      note: 'text/xml from /api/profile.xml, payload inside a ' + wrap.replace('xml-', ''),
+      resource: { mime: 'text/xml', sink, wrap },
+    }));
   } else if (suite === 'sinks' || suite === 'controls') {
+    // These vary the handler, not the binding, and the Angular components hold
+    // compiled-in URLs. The html layer carries them.
     selected = [];
   }
   return selected.map((row) => ({ layer: 'angular', sink, ...row }));

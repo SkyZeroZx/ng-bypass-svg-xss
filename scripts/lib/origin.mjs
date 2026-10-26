@@ -25,7 +25,14 @@ const STATIC_TYPES = {
   '.json': 'application/json',
 };
 
-const ATTACKER_PATHS = new Set(['/asset.svg', '/uploads/avatar.png', '/uploads/note.txt']);
+const ATTACKER_PATHS = new Set([
+  '/asset.svg',
+  '/uploads/avatar.png',
+  '/uploads/note.txt',
+  // Not an upload: one of the application's own XML endpoints, which the
+  // Angular xml cases bind. The envelope decides whether it parses.
+  '/api/profile.xml',
+]);
 
 // The page that stands in for an application with no Angular on it. Its setup
 // code is an external script, so a page CSP of script-src 'self' leaves it
@@ -122,6 +129,7 @@ export async function startOrigin({ dist } = {}) {
     const resource = active.resource || {};
     return payload(resource.sink || 'image-onerror', {
       id: resource.rootId === undefined ? 'x' : resource.rootId,
+      wrap: resource.wrap || null,
     });
   }
 

@@ -11,7 +11,7 @@ import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promise
 import { dirname, join } from 'node:path';
 import { release, arch, version as osVersion } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { MARKER } from './vectors.mjs';
+import { CLICK_SINKS, MARKER } from './vectors.mjs';
 
 // Read back inside the page. getBBox() on the <use> is independent evidence
 // that the browser adopted and laid out the external document; findings are
@@ -37,6 +37,9 @@ function observeScript(marker) {
         ? document.querySelector('[ng-version]').getAttribute('ng-version')
         : null,
       href: location.href,
+      // The button case renders its own click count, so a row can tell whether
+      // the app's handler ran as well as whatever the clone did.
+      appClicks: (document.getElementById('app-clicks') || {}).textContent || null,
       contentType: document.contentType || null,
     };
   })()`;
@@ -161,9 +164,9 @@ export async function runCase(page, server, specimen, options) {
       http: server.http(),
     };
   }
-  // onclick needs a real pointer event. Everything else gets the same dwell,
+  // Some sinks need a real pointer event. Everything else gets the same dwell,
   // so a slow external load is not scored as a block.
-  if (specimen.sink === 'rect-onclick' && observation.use) {
+  if (CLICK_SINKS.has(specimen.sink) && observation.use) {
     await page.click('#bound-use').catch(() => {});
   }
   observation = await waitFor(
